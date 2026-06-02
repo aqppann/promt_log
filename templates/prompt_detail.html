@@ -1,166 +1,93 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ prompt.title }} | AI Prompt Logger{% endblock %}
+{% block title %}{{ prompt.title }} — Prompt Logger{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <a href="{{ url_for('prompts.index') }}" class="btn btn-secondary btn-sm" style="margin-bottom: 1rem;">← Back to Hub</a>
-    
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1.5rem;">
-        <div>
-            <h1>{{ prompt.title }}</h1>
-            <div class="prompt-meta">
-                <span class="badge badge-category badge-{{ prompt.category }}">{{ prompt.category }}</span>
-                <span class="badge badge-{{ prompt.target_model }}">{{ prompt.target_model }}</span>
-                <span style="font-size: 0.9rem; color: var(--text-muted);">Created on: {{ prompt.created_at | datetimeformat }}</span>
-            </div>
-        </div>
-        
-        <div style="display: flex; gap: 0.75rem;">
-            <a href="{{ url_for('prompts.edit', id=prompt.id) }}" class="btn btn-primary">⚡ Create New Version</a>
-            <form action="{{ url_for('prompts.delete', id=prompt.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this prompt and all its versions? This action cannot be undone.');">
-                <button type="submit" class="btn btn-danger">Delete Prompt</button>
-            </form>
-        </div>
+<div class="page-header">
+    <h1>{{ prompt.title }}</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('prompts.edit', prompt_id=prompt.id) }}" class="btn btn-secondary">Редагувати</a>
+        <form action="{{ url_for('prompts.delete', prompt_id=prompt.id) }}" method="POST"
+              onsubmit="return confirm('Видалити промпт?')">
+            <button type="submit" class="btn btn-danger">Видалити</button>
+        </form>
     </div>
 </div>
 
-<div class="main-grid">
-    <!-- Left Column: Versions List -->
-    <div>
-        <h3 style="margin-bottom: 1.5rem;">Versions History</h3>
-        
-        {% if versions %}
-            {% for v in versions %}
-                <!-- Determine if this is the database-stored procedure's best version -->
-                {% set is_best = best_version and best_version.id == v.id and v.rating is not none %}
-                
-                <div class="version-card {% if is_best %}best-version-highlight{% endif %}" id="v{{ v.version_number }}">
-                    <div class="version-header">
-                        <div>
-                            <span class="version-title">v{{ v.version_number }}</span>
-                            <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.75rem;">
-                                {{ v.created_at | datetimeformat }}
-                            </span>
-                            {% if is_best %}
-                                <span class="best-badge">⭐ BEST VERSION</span>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Interactive Rating Form -->
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 0.85rem; color: var(--text-muted);">Rate:</span>
-                            <form action="{{ url_for('versions.rate', id=v.id) }}" method="POST" style="display: inline-block;">
-                                <div class="star-rating">
-                                    <input type="radio" id="star5-{{ v.id }}" name="rating" value="5" {% if v.rating == 5 %}checked{% endif %} onchange="this.form.submit()">
-                                    <label for="star5-{{ v.id }}">★</label>
-                                    <input type="radio" id="star4-{{ v.id }}" name="rating" value="4" {% if v.rating == 4 %}checked{% endif %} onchange="this.form.submit()">
-                                    <label for="star4-{{ v.id }}">★</label>
-                                    <input type="radio" id="star3-{{ v.id }}" name="rating" value="3" {% if v.rating == 3 %}checked{% endif %} onchange="this.form.submit()">
-                                    <label for="star3-{{ v.id }}">★</label>
-                                    <input type="radio" id="star2-{{ v.id }}" name="rating" value="2" {% if v.rating == 2 %}checked{% endif %} onchange="this.form.submit()">
-                                    <label for="star2-{{ v.id }}">★</label>
-                                    <input type="radio" id="star1-{{ v.id }}" name="rating" value="1" {% if v.rating == 1 %}checked{% endif %} onchange="this.form.submit()">
-                                    <label for="star1-{{ v.id }}">★</label>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    
-                    <!-- Copyable content container -->
-                    <div class="version-content" title="Click to select all">{{ v.content }}</div>
-                    
-                    <!-- AI feedback display or trigger button -->
-                    <div class="version-actions">
-                        <div>
-                            <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(this.closest('.version-card').querySelector('.version-content').innerText); alert('Prompt copied to clipboard!');">
-                                📋 Copy Prompt
-                            </button>
-                        </div>
-                        
-                        <div>
-                            {% if not v.ai_feedback %}
-                                <form action="{{ url_for('versions.analyze', id=v.id) }}" method="POST" style="display: inline-block;">
-                                    <button type="submit" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);">
-                                        🤖 Analyze with AI
-                                    </button>
-                                </form>
-                            {% endif %}
-                        </div>
-                    </div>
+<div class="prompt-detail-card">
+    {% if prompt.category %}
+        <span class="badge">{{ prompt.category }}</span>
+    {% endif %}
 
-                    {% if v.ai_feedback %}
-                        <div class="ai-feedback-container">
-                            <div style="font-size: 0.95rem; line-height: 1.6;">
-                                {{ v.ai_feedback | safe }}
-                            </div>
-                            <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-                                <form action="{{ url_for('versions.analyze', id=v.id) }}" method="POST">
-                                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.75rem;">
-                                        🔄 Re-analyze
-                                    </button>
-                                </form>
-                                <span style="font-size: 0.75rem; color: var(--text-muted);">Analyzed via Gemini 3.5 Flash</span>
-                            </div>
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        {% else %}
-            <div class="empty-state">
-                <h3>No versions found</h3>
-                <p>Add a version to this prompt to start logging content.</p>
-            </div>
-        {% endif %}
+    {% if prompt.description %}
+        <p class="prompt-description">{{ prompt.description }}</p>
+    {% endif %}
+
+    <div class="prompt-content-box">
+        <h3>Зміст промпту</h3>
+        <pre>{{ prompt.content }}</pre>
     </div>
-    
-    <!-- Right Column: Audit Logs & Stats -->
-    <div>
-        <!-- Stats panel -->
-        <div class="panel" style="margin-bottom: 2rem;">
-            <h3 style="margin-bottom: 1.25rem;">Prompt Analytics</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Versions</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-violet);">{{ versions | length }}</div>
-                </div>
-                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Best Rating</div>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--color-warning);">
-                        {% if best_version and best_version.rating %}
-                            {{ best_version.rating }}<span style="font-size: 1rem; font-weight: 500;">/5</span>
+
+    <p class="prompt-date">
+        Створено: {{ prompt.created_at.strftime('%d.%m.%Y %H:%M') }} |
+        Оновлено: {{ prompt.updated_at.strftime('%d.%m.%Y %H:%M') }}
+    </p>
+</div>
+
+<!-- AI Аналіз -->
+<div class="section">
+    <h2>AI Аналіз</h2>
+    <form action="{{ url_for('prompts.analyze', prompt_id=prompt.id) }}" method="POST">
+        <button type="submit" class="btn btn-primary">⚡ Проаналізувати через Gemini</button>
+    </form>
+</div>
+
+<!-- Версії -->
+<div class="section">
+    <h2>Історія версій</h2>
+
+    {% if prompt.versions %}
+        <table class="versions-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Дата</th>
+                    <th>Примітка</th>
+                    <th>AI аналіз</th>
+                    <th>Дії</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for version in prompt.versions | sort(attribute='version_number', reverse=True) %}
+                <tr>
+                    <td>v{{ version.version_number }}</td>
+                    <td>{{ version.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>{{ version.change_note or '—' }}</td>
+                    <td>
+                        {% if version.ai_analysis %}
+                            <span class="badge badge-success">Є</span>
                         {% else %}
-                            —
+                            <span class="badge badge-muted">Немає</span>
                         {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            {% if best_version and best_version.rating %}
-                <div style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Best Version Content (v{{ best_version.version_number }}):</div>
-                    <div class="prompt-preview" style="margin-bottom: 0; max-height: 80px;">{{ best_version.content }}</div>
-                    <a href="#v{{ best_version.version_number }}" style="color: var(--accent-violet); font-size: 0.8rem; text-decoration: none; margin-top: 0.5rem; display: inline-block; font-weight: 600;">Scroll to version →</a>
-                </div>
-            {% endif %}
-        </div>
-
-        <!-- Audit log panel -->
-        <div class="panel">
-            <h3 style="margin-bottom: 1.25rem;">Version Audit Log</h3>
-            <div class="audit-list">
-                {% if audit_logs %}
-                    {% for log in audit_logs %}
-                        <div class="audit-item">
-                            <span class="audit-action {{ log.action }}">{{ log.action | replace('_', ' ') | upper }}</span>
-                            <span class="audit-time">{{ log.happened_at | datetimeformat }}</span>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No audit log records for this prompt.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+                    </td>
+                    <td>
+                        <form action="{{ url_for('versions.restore', prompt_id=prompt.id, version_id=version.id) }}"
+                              method="POST" style="display:inline">
+                            <button type="submit" class="btn btn-sm">Відновити</button>
+                        </form>
+                        <form action="{{ url_for('versions.delete_version', prompt_id=prompt.id, version_id=version.id) }}"
+                              method="POST" style="display:inline"
+                              onsubmit="return confirm('Видалити версію?')">
+                            <button type="submit" class="btn btn-sm btn-danger">Видалити</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">Версій ще немає. Відредагуй промпт — версія збережеться автоматично.</p>
+    {% endif %}
 </div>
+
 {% endblock %}

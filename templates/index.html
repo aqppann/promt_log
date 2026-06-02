@@ -1,113 +1,24 @@
 {% extends 'base.html' %}
 
-{% block title %}Prompt Hub | AI Prompt Logger{% endblock %}
+{% block title %}Всі промпти — Prompt Logger{% endblock %}
 
 {% block content %}
-<div class="main-grid">
-    <div>
-        <h2>All Prompts</h2>
-        <p class="subtitle">Organize, version, and evaluate your team's prompts in one place.</p>
-        
-        <!-- Filters -->
-        <form method="GET" action="{{ url_for('prompts.index') }}" class="filters-bar" id="filters-form">
-            <span>Filter by:</span>
-            <select name="category" class="filter-select" onchange="document.getElementById('filters-form').submit()">
-                <option value="">All Categories</option>
-                <option value="debugging" {% if category_filter == 'debugging' %}selected{% endif %}>Debugging</option>
-                <option value="refactoring" {% if category_filter == 'refactoring' %}selected{% endif %}>Refactoring</option>
-                <option value="docs" {% if category_filter == 'docs' %}selected{% endif %}>Docs</option>
-                <option value="testing" {% if category_filter == 'testing' %}selected{% endif %}>Testing</option>
-                <option value="other" {% if category_filter == 'other' %}selected{% endif %}>Other</option>
-            </select>
-            
-            <select name="model" class="filter-select" onchange="document.getElementById('filters-form').submit()">
-                <option value="">All Models</option>
-                <option value="gpt-4" {% if model_filter == 'gpt-4' %}selected{% endif %}>GPT-4</option>
-                <option value="claude" {% if model_filter == 'claude' %}selected{% endif %}>Claude</option>
-                <option value="gemini" {% if model_filter == 'gemini' %}selected{% endif %}>Gemini</option>
-            </select>
-            
-            {% if category_filter or model_filter %}
-                <a href="{{ url_for('prompts.index') }}" class="btn btn-secondary btn-sm">Clear Filters</a>
-            {% endif %}
-        </form>
+<div class="page-header">
+    <h1>Мої промпти</h1>
+    <a href="{{ url_for('prompts.create') }}" class="btn btn-primary">+ Новий промпт</a>
+</div>
 
-        <!-- Prompt Cards Grid -->
-        <div class="prompt-list">
-            {% if prompts_data %}
-                {% for data in prompts_data %}
-                    <div class="prompt-card">
-                        <div>
-                            <div class="prompt-card-header">
-                                <a href="{{ url_for('prompts.detail', id=data.prompt.id) }}" class="prompt-card-title">
-                                    {{ data.prompt.title }}
-                                </a>
-                                <span class="badge badge-{{ data.prompt.target_model }}">{{ data.prompt.target_model }}</span>
-                            </div>
-                            
-                            <div class="prompt-meta">
-                                <span class="badge badge-category badge-{{ data.prompt.category }}">{{ data.prompt.category }}</span>
-                                <span style="font-size: 0.85rem; color: var(--text-muted);">
-                                    Created: {{ data.prompt.created_at | datetimeformat }}
-                                </span>
-                            </div>
-
-                            {% if data.latest_version %}
-                                <div class="prompt-preview">{{ data.latest_version.content }}</div>
-                            {% else %}
-                                <div class="prompt-preview" style="font-style: italic; color: var(--text-muted);">No version content available</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="prompt-card-footer">
-                            <div>
-                                <span>Version count: {{ data.prompt.versions | length }}</span>
-                            </div>
-                            <div>
-                                {% if data.best_version and data.best_version.rating %}
-                                    <span class="stars-display">
-                                        {% for _ in range(data.best_version.rating) %}★{% endfor %}
-                                        {% for _ in range(5 - data.best_version.rating) %}<span class="stars-display-empty">★</span>{% endfor %}
-                                    </span>
-                                    <span style="font-size: 0.8rem; font-weight: 600; color: var(--color-warning);">Best Rating</span>
-                                {% else %}
-                                    <span style="font-style: italic; font-size: 0.8rem;">Not rated yet</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="empty-state">
-                    <div class="empty-state-icon">📂</div>
-                    <h3>No Prompts Found</h3>
-                    <p>Create a prompt to start logging and versioning your workflows.</p>
-                    <a href="{{ url_for('prompts.create') }}" class="btn btn-primary" style="margin-top: 1rem;">Create First Prompt</a>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Sidebar with Audit Log -->
-    <div>
-        <div class="panel">
-            <h3 style="margin-bottom: 1.25rem;">Activity Log</h3>
-            <div class="audit-list">
-                {% if recent_logs %}
-                    {% for log in recent_logs %}
-                        <div class="audit-item">
-                            <span class="audit-action {{ log.action }}">{{ log.action | replace('_', ' ') | upper }}</span>
-                            <a href="{{ url_for('prompts.detail', id=log.prompt_id) }}" class="audit-prompt">
-                                {{ log.title }}
-                            </a>
-                            <span class="audit-time">{{ log.happened_at | datetimeformat }}</span>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No activity logged yet.</p>
+{% if prompts %}
+    <div class="prompts-grid">
+        {% for prompt in prompts %}
+        <div class="prompt-card">
+            <div class="prompt-card-header">
+                <h2>
+                    <a href="{{ url_for('prompts.detail', prompt_id=prompt.id) }}">
+                        {{ prompt.title }}
+                    </a>
+                </h2>
+                {% if prompt.category %}
+                    <span class="badge">{{ prompt.category }}</span>
                 {% endif %}
             </div>
-        </div>
-    </div>
-</div>
-{% endblock %}

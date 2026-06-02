@@ -1,16 +1,31 @@
-# This is a sample Python script.
+import os
+from flask import Flask
+from config import Config
+from models import db
+from routes.prompts import prompts_bp
+from routes.versions import versions_bp
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    
+    # Initialize DB
+    db.init_app(app)
+    
+    # Register blueprints
+    app.register_blueprint(prompts_bp)
+    app.register_blueprint(versions_bp)
+    
+    # Custom filters
+    @app.template_filter('datetimeformat')
+    def datetimeformat(value):
+        if not value:
+            return ""
+        return value.strftime('%d.%m.%Y %H:%M')
+        
+    return app
 
+app = create_app()
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -1,48 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AI Prompt Logger{% endblock %}</title>
-    <meta name="description" content="A professional dashboard to log, version-control, rate, and audit AI prompts with integrated AI feedback and analysis.">
-    <!-- Google Fonts Outfit & Fira Code -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>{% block title %}Prompt Logger{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    {% block head %}{% endblock %}
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <a href="{{ url_for('prompts.index') }}" class="logo">
-                <span class="logo-icon">⚡</span>
-                <span class="logo-text">Prompt<span>Logger</span></span>
-            </a>
-            <nav>
-                <a href="{{ url_for('prompts.create') }}" class="btn btn-primary">
-                    <span>+</span> New Prompt
-                </a>
-            </nav>
-        </header>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-container">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category if category != 'error' else 'danger' }}">
-                            <span>{{ message }}</span>
-                            <button class="alert-close" onclick="this.parentElement.remove();">&times;</button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-
-        <main>
-            {% block content %}{% endblock %}
-        </main>
+<nav class="navbar">
+    <a href="{{ url_for('prompts.index') }}" class="nav-logo">⚡ Prompt Logger</a>
+    <div class="nav-links">
+        <a href="{{ url_for('prompts.index') }}">Всі промпти</a>
+        <a href="{{ url_for('prompts.create') }}">+ Новий промпт</a>
     </div>
-    {% block scripts %}{% endblock %}
+</nav>
+
+<main class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+</main>
+
+<footer class="footer">
+    <p>Prompt Logger © 2024</p>
+</footer>
+
 </body>
 </html>

@@ -1,78 +1,48 @@
 {% extends 'base.html' %}
 
-{% block title %}Create New Prompt | AI Prompt Logger{% endblock %}
+{% block title %}Новий промпт — Prompt Logger{% endblock %}
 
 {% block content %}
-<div style="max-width: 800px; margin: 0 auto;">
-    <a href="{{ url_for('prompts.index') }}" class="btn btn-secondary btn-sm" style="margin-bottom: 1.5rem;">← Back to Hub</a>
-    
-    <div class="panel">
-        <div class="panel-header">
-            <h2>Add Prompt to Library</h2>
-        </div>
-        
-        <form method="POST" action="{{ url_for('prompts.create') }}">
-            <!-- Title -->
-            <div class="form-group">
-                <label for="title" class="form-label">Prompt Title</label>
-                <input type="text" id="title" name="title" class="form-control" placeholder="e.g., Python Code Reviewer / SQL Generator" required>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                <!-- Category -->
-                <div class="form-group">
-                    <label for="category" class="form-label">Category</label>
-                    <select id="category" name="category" class="form-control" required>
-                        <option value="" disabled selected>Select category...</option>
-                        <option value="debugging">Debugging</option>
-                        <option value="refactoring">Refactoring</option>
-                        <option value="docs">Docs</option>
-                        <option value="testing">Testing</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <!-- Target Model -->
-                <div class="form-group">
-                    <label for="target_model" class="form-label">Target Model</label>
-                    <select id="target_model" name="target_model" class="form-control" required>
-                        <option value="" disabled selected>Select model...</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="claude">Claude</option>
-                        <option value="gemini">Gemini</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Prompt Content -->
-            <div class="form-group">
-                <label for="content" class="form-label">Prompt Content (First Version)</label>
-                <textarea id="content" name="content" class="form-control" placeholder="Write your prompt content here..." required></textarea>
-            </div>
-            
-            <!-- Rating -->
-            <div class="form-group">
-                <label class="form-label" style="display: inline-block; margin-right: 1rem;">Initial Rating (Optional):</label>
-                <div class="star-rating">
-                    <input type="radio" id="star5" name="rating" value="5">
-                    <label for="star5">★</label>
-                    <input type="radio" id="star4" name="rating" value="4">
-                    <label for="star4">★</label>
-                    <input type="radio" id="star3" name="rating" value="3">
-                    <label for="star3">★</label>
-                    <input type="radio" id="star2" name="rating" value="2">
-                    <label for="star2">★</label>
-                    <input type="radio" id="star1" name="rating" value="1">
-                    <label for="star1">★</label>
-                </div>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Rate the output quality of this prompt from 1 to 5 stars.</p>
-            </div>
-            
-            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
-                <a href="{{ url_for('prompts.index') }}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Create Prompt</button>
-            </div>
-        </form>
-    </div>
+<div class="page-header">
+    <h1>Новий промпт</h1>
+    <a href="{{ url_for('prompts.index') }}" class="btn btn-secondary">← Назад</a>
 </div>
+
+<div class="form-card">
+    <form action="{{ url_for('prompts.create_post') }}" method="POST">
+
+        <div class="form-group">
+            <label for="title">Назва *</label>
+            <input type="text" id="title" name="title"
+                   placeholder="Наприклад: Summarize article"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Категорія</label>
+            <input type="text" id="category" name="category"
+                   placeholder="Наприклад: Writing, Coding, Analysis">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Опис</label>
+            <input type="text" id="description" name="description"
+                   placeholder="Коротко про що цей промпт">
+        </div>
+
+        <div class="form-group">
+            <label for="content">Зміст промпту *</label>
+            <textarea id="content" name="content" rows="10"
+                      placeholder="Введи текст промпту..."
+                      required></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Зберегти промпт</button>
+            <a href="{{ url_for('prompts.index') }}" class="btn btn-secondary">Скасувати</a>
+        </div>
+
+    </form>
+</div>
+
 {% endblock %}

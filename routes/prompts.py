@@ -62,4 +62,31 @@ def edit_post(prompt_id):
     prompt = Prompt.query.get_or_404(prompt_id)
 
     title = request.form.get('title', '').strip()
-    content = request.form.get
+    content = request.form.get('content', '').strip()
+    description = request.form.get('description', '').strip()
+    category = request.form.get('category', '').strip()
+
+    if not title or not content:
+        flash('Назва та зміст обовʼязкові', 'error')
+        return redirect(url_for('prompts.edit', prompt_id=prompt_id))
+
+    prompt.title = title
+    prompt.content = content  # ← тут спрацює тригер PostgreSQL
+    prompt.description = description
+    prompt.category = category
+
+    db.session.commit()
+
+    flash('Промпт оновлено!', 'success')
+    return redirect(url_for('prompts.detail', prompt_id=prompt.id))
+
+
+# Видалення промпту
+@prompts_bp.route('/prompts/<int:prompt_id>/delete', methods=['POST'])
+def delete(prompt_id):
+    prompt = Prompt.query.get_or_404(prompt_id)
+    db.session.delete(prompt)
+    db.session.commit()
+
+    flash('Промпт видалено', 'info')
+    return redirect(url_for('prompts.index'))

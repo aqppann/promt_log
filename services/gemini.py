@@ -1,32 +1,34 @@
-import google.generativeai as genai
+from google import genai
 from config import Config
 
-genai.configure(api_key=Config.GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+client = genai.Client(api_key=Config.GEMINI_API_KEY)
 
 
 def analyze_prompt(content: str) -> str:
-    """Аналізує промпт через Gemini і повертає рекомендації."""
     try:
-        system = """Ти — експерт з написання AI-промптів. 
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=f"""Ти — експерт з написання AI-промптів.
 Проаналізуй промпт і дай коротку відповідь у форматі:
 
 **Якість:** (Відмінно / Добре / Задовільно / Потребує покращення)
 **Сильні сторони:** (1-2 речення)
 **Що покращити:** (1-2 конкретні поради)
 **Покращена версія:** (переписаний промпт)
-"""
-        response = model.generate_content(f"{system}\n\nПромпт для аналізу:\n{content}")
-        return response.text
 
+Промпт для аналізу:
+{content}"""
+        )
+        return response.text
     except Exception as e:
         return f"Помилка аналізу: {str(e)}"
 
 
 def compare_versions(old_content: str, new_content: str) -> str:
-    """Порівнює дві версії промпту."""
     try:
-        prompt = f"""Порівняй дві версії промпту і скажи що змінилось і чи стало краще.
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=f"""Порівняй дві версії промпту і скажи що змінилось і чи стало краще.
 
 **Стара версія:**
 {old_content}
@@ -34,10 +36,8 @@ def compare_versions(old_content: str, new_content: str) -> str:
 **Нова версія:**
 {new_content}
 
-Дай коротку відповідь: що змінилось, чи покращилось, що ще можна зробити.
-"""
-        response = model.generate_content(prompt)
+Дай коротку відповідь: що змінилось, чи покращилось, що ще можна зробити."""
+        )
         return response.text
-
     except Exception as e:
         return f"Помилка порівняння: {str(e)}"

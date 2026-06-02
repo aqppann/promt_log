@@ -1,3 +1,4 @@
+from datetime import timedelta
 from flask import Flask
 from config import Config
 from models import db
@@ -7,10 +8,14 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Ініціалізація БД
     db.init_app(app)
 
-    # Реєстрація blueprints
+    @app.template_filter('ua_time')
+    def ua_time_filter(dt):
+        if dt is None:
+            return ''
+        return (dt + timedelta(hours=3)).strftime('%d.%m.%Y %H:%M')
+
     from routes.prompts import prompts_bp
     from routes.versions import versions_bp
 

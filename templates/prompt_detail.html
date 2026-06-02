@@ -29,8 +29,8 @@
     </div>
 
     <p class="prompt-date">
-        Створено: {{ prompt.created_at.strftime('%d.%m.%Y %H:%M') }} |
-        Оновлено: {{ prompt.updated_at.strftime('%d.%m.%Y %H:%M') }}
+        Створено: {{ prompt.created_at | ua_time }} |
+        Оновлено: {{ prompt.updated_at | ua_time }}
     </p>
 </div>
 
@@ -38,7 +38,7 @@
 <div class="section">
     <h2>AI Аналіз</h2>
     <form action="{{ url_for('prompts.analyze', prompt_id=prompt.id) }}" method="POST">
-        <button type="submit" class="btn btn-primary">⚡ Проаналізувати через Gemini</button>
+        <button type="submit" class="btn btn-primary">Проаналізувати через Gemini</button>
     </form>
 </div>
 

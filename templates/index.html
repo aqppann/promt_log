@@ -22,3 +22,29 @@
                     <span class="badge">{{ prompt.category }}</span>
                 {% endif %}
             </div>
+
+            {% if prompt.description %}
+                <p class="prompt-description">{{ prompt.description }}</p>
+            {% endif %}
+
+            <p class="prompt-preview">{{ prompt.content[:150] }}{% if prompt.content|length > 150 %}...{% endif %}</p>
+
+            <div class="prompt-card-footer">
+                <span class="prompt-date">{{ prompt.created_at | ua_time }}</span>
+                <div class="prompt-actions">
+                    <a href="{{ url_for('prompts.detail', prompt_id=prompt.id) }}" class="btn btn-sm">Деталі</a>
+                    <a href="{{ url_for('prompts.edit', prompt_id=prompt.id) }}" class="btn btn-sm btn-secondary">Редагувати</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <div class="empty-state">
+        <p>Промптів ще немає.</p>
+        <a href="{{ url_for('prompts.create') }}" class="btn btn-primary">Створити перший промпт</a>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -90,3 +90,20 @@ def delete(prompt_id):
 
     flash('Промпт видалено', 'info')
     return redirect(url_for('prompts.index'))
+
+
+# AI аналіз
+from services.gemini import analyze_prompt
+
+@prompts_bp.route('/prompts/<int:prompt_id>/analyze', methods=['POST'])
+def analyze(prompt_id):
+    prompt = Prompt.query.get_or_404(prompt_id)
+
+    analysis = analyze_prompt(prompt.content)
+
+    if prompt.versions:
+        prompt.versions[-1].ai_analysis = analysis
+        db.session.commit()
+
+    flash('AI аналіз готовий!', 'success')
+    return redirect(url_for('prompts.detail', prompt_id=prompt_id))

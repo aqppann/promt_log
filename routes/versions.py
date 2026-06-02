@@ -19,7 +19,6 @@ def restore(prompt_id, version_id):
     prompt = Prompt.query.get_or_404(prompt_id)
     version = PromptVersion.query.get_or_404(version_id)
 
-    # Це оновлення спрацює тригер — стара версія збережеться автоматично
     prompt.content = version.content
     db.session.commit()
 
@@ -28,4 +27,11 @@ def restore(prompt_id, version_id):
 
 
 # Видалити конкретну версію
-@versions_bp.route('/prompts/<int:prompt_id>/versions/<int:version_id>/delete', m
+@versions_bp.route('/prompts/<int:prompt_id>/versions/<int:version_id>/delete', methods=['POST'])
+def delete_version(prompt_id, version_id):
+    version = PromptVersion.query.get_or_404(version_id)
+    db.session.delete(version)
+    db.session.commit()
+
+    flash('Версію видалено', 'info')
+    return redirect(url_for('versions.list_versions', prompt_id=prompt_id))

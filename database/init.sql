@@ -1,4 +1,4 @@
--- 1. Збережена процедура
+-- 1. Тригерна функція — автоматично зберігає стару версію при оновленні
 CREATE OR REPLACE FUNCTION create_prompt_version()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -18,8 +18,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 2. Тригер
+-- 2. Тригер — спрацьовує перед оновленням промпту
 CREATE OR REPLACE TRIGGER prompt_version_trigger
 BEFORE UPDATE ON prompts
 FOR EACH ROW
 EXECUTE FUNCTION create_prompt_version();
+
+-- 3. Збережена процедура — повертає найновішу версію промпту
+CREATE OR REPLACE FUNCTION get_best_version(p_id INTEGER)
+RETURNS TABLE(
+    version_number INT,
+    content TEXT,
+    change_note VARCHAR,
+    created_at TIMESTAMP
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        pv.version_number,
+        pv.content,
+        pv.change_note,
+        pv.created_at
+    FROM prompt_versions pv
+    WHERE pv.prompt_id = p_id
+    ORDER BY pv.version_number DESC
+    LIMIT 1;
+END;
+$$ LANGUAGE plpgsql;

@@ -40,6 +40,15 @@
     <form action="{{ url_for('prompts.analyze', prompt_id=prompt.id) }}" method="POST">
         <button type="submit" class="btn btn-primary">Проаналізувати через Gemini</button>
     </form>
+
+    {% for version in prompt.versions %}
+        {% if version.ai_analysis %}
+        <div class="prompt-content-box" style="margin-top: 1rem;">
+            <h3>Результат аналізу — версія v{{ version.version_number }}</h3>
+            <pre style="white-space: pre-wrap;">{{ version.ai_analysis }}</pre>
+        </div>
+        {% endif %}
+    {% endfor %}
 </div>
 
 <!-- Версії -->

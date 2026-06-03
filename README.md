@@ -1,36 +1,118 @@
 # Prompt Logger
 
-Веб-додаток для зберігання, керування та AI-аналізу промптів. Розробники щодня використовують AI-інструменти, але рідко зберігають та аналізують свої промпти — цей застосунок вирішує цю проблему.
+Веб-додаток для зберігання, керування та AI-аналізу промптів.
+Розробники щодня використовують AI-інструменти, але рідко зберігають та аналізують свої промпти — цей застосунок вирішує цю проблему.
 
 ## Технології
 
 - Python 3.12 / Flask
 - PostgreSQL + SQLAlchemy
-- Gemini AI (google-genai)
-- Jinja2 templates
-- Bootstrap 5
+- Groq AI (LLaMA 3.3)
+- Jinja2 / Bootstrap 5
 
 ## Функціонал
 
 - Створення, редагування, видалення промптів
-- Автоматичне збереження версій через PostgreSQL тригер
-- AI-аналіз промпту через Gemini
+- Автоматичне версіонування через PostgreSQL тригер
+- AI-аналіз промпту через Groq API
 - Історія версій з можливістю відновлення
+
+---
 
 ## Реалізовані принципи для високого балу
 
 ### 1. Тригер (Trigger)
-При оновленні поля `content` у таблиці `prompts` автоматично спрацьовує тригер `prompt_version_trigger`. Він зберігає попередню версію тексту в таблицю `prompt_versions` з автоматичним номером версії. Файл: `database/init.sql`
+
+**Файл:** `database/init.sql`
+
+При кожному оновленні поля `content` у таблиці `prompts` автоматично спрацьовує тригер `prompt_version_trigger`. Він викликає функцію `create_prompt_version()`, яка зберігає попередній текст у таблицю `prompt_versions` з автоматично обчисленим номером версії. Вся логіка виконується на рівні PostgreSQL — Flask не бере участі.
+
+```sql
+CREATE OR REPLACE TRIGGER prompt_version_trigger
+BEFORE UPDATE ON prompts
+FOR EACH ROW
+EXECUTE FUNCTION create_prompt_version();
+```
+
+Перевірити наявність тригера:
+```sql
+SELECT trigger_name, event_manipulation
+FROM information_schema.triggers
+WHERE trigger_name = 'prompt_version_trigger';
+```
+
+---
 
 ### 2. Збережена процедура (Stored Function)
-Функція `get_best_version(prompt_id)` у PostgreSQL повертає найновішу збережену версію для вказаного промпту. Викликається з Flask через SQLAlchemy за допомогою `text()`. Файл: `database/init.sql`, виклик у `routes/prompts.py`
+
+**Файл:** `database/init.sql` — оголошення, `routes/prompts.py` — виклик
+
+Функція `get_best_version(p_id)` написана на PL/pgSQL і повертає найновішу збережену версію промпту за його `id`. Викликається з Flask через SQLAlchemy за допомогою `text()`.
+
+```sql
+CREATE OR REPLACE FUNCTION get_best_version(p_id INTEGER)
+RETURNS TABLE(version_number INT, content TEXT, change_note VARCHAR, created_at TIMESTAMP)
+AS $$ ... $$ LANGUAGE plpgsql;
+```
+
+Виклик з Flask:
+```python
+result = db.session.execute(
+    text('SELECT * FROM get_best_version(:pid)'),
+    {'pid': prompt_id}
+).fetchone()
+```
+
+Перевірити наявність функцій у БД:
+```sql
+SELECT routine_name, routine_type
+FROM information_schema.routines
+WHERE routine_name IN ('create_prompt_version', 'get_best_version');
+```
+
+---
 
 ### 3. Транзакція (Transaction)
-При створенні нового промпту в одній транзакції одночасно створюється запис у таблиці `prompts` і перша версія в `prompt_versions`. Якщо будь-яка з операцій завершується помилкою — виконується `rollback`, і жодних неповних даних у БД не залишається. Файл: `routes/prompts.py` → функція `create_post()`
+
+**Файл:** `routes/prompts.py` → функція `create_post()`
+
+При створенні нового промпту в одній транзакції одночасно виконуються два записи — у таблицю `prompts` і у таблицю `prompt_versions` (перша версія). Використовується `db.session.flush()` для отримання `id` до фіксації. Якщо будь-яка операція завершується помилкою — викликається `db.session.rollback()` і жодних неповних даних у БД не залишається.
+
+```python
+try:
+    db.session.add(prompt)
+    db.session.flush()
+    db.session.add(first_version)
+    db.session.commit()
+except Exception:
+    db.session.rollback()
+```
+
+---
 
 ## Структура БД
-prompts — id, title, description, content, category, created_at, updated_at
-prompt_versions — id, prompt_id (FK), version_number, content, change_note, ai_analysis, created_at
+
+```
+prompts
+├── id            SERIAL PRIMARY KEY
+├── title         VARCHAR(255) NOT NULL
+├── description   TEXT
+├── content       TEXT NOT NULL
+├── category      VARCHAR(100)
+├── created_at    TIMESTAMP
+└── updated_at    TIMESTAMP
+
+prompt_versions
+├── id             SERIAL PRIMARY KEY
+├── prompt_id      INTEGER FK → prompts.id
+├── version_number INTEGER NOT NULL
+├── content        TEXT NOT NULL
+├── change_note    VARCHAR(500)
+├── ai_analysis    TEXT
+└── created_at     TIMESTAMP
+```
+
+---
 
 ## Встановлення
 
@@ -39,42 +121,56 @@ prompt_versions — id, prompt_id (FK), version_number, content, change_note, ai
 git clone https://github.com/aqppann/promt_log.git
 cd promt_log
 ```
-2. Створи та активуй venv:
+
+2. Створи та активуй віртуальне середовище:
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
+
 3. Встанови залежності:
 ```bash
 pip install -r requirements.txt
 ```
-4. Створи `.env` файл:
+
+4. Створи `.env` файл у корені проєкту:
+```env
 SECRET_KEY=твій_секретний_ключ
 DATABASE_URL=postgresql://postgres:пароль@localhost:5432/prompt_logger
-GEMINI_API_KEY=твій_gemini_ключ
-5. Створи БД та таблиці:
+GROQ_API_KEY=твій_groq_ключ
+```
+
+5. Створи таблиці та ініціалізуй БД:
 ```bash
 python init_db.py
 ```
+
 6. Запусти додаток:
 ```bash
 python app.py
 ```
+
 Відкрий браузер: `http://127.0.0.1:5000`
 
+---
+
 ## Структура проєкту
+
+```
 promt_log/
 ├── database/
 │   └── init.sql          # Тригер і збережена процедура
 ├── routes/
-│   ├── prompts.py        # CRUD промптів + транзакція
+│   ├── prompts.py        # CRUD промптів + транзакція + виклик процедури
 │   └── versions.py       # Керування версіями
 ├── services/
-│   └── gemini.py         # Gemini AI інтеграція
+│   └── gemini.py         # Groq AI інтеграція
 ├── static/
 │   └── style.css         # Стилі
-├── templates/            # HTML шаблони
-├── models.py             # Моделі БД
-├── app.py                # Ініціалізація Flask
-├── config.py             # Конфігурація
-└── init_db.py            # Ініціалізація БД
+├── templates/            # HTML шаблони (Jinja2)
+├── models.py             # Моделі БД (SQLAlchemy)
+├── app.py                # Фабрика Flask застосунку
+├── config.py             # Конфігурація через .env
+├── init_db.py            # Ініціалізація БД
+└── requirements.txt      # Залежності
+```
